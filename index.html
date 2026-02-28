@@ -1,250 +1,260 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>🎧 Hung Music Player</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GaaraChillChill</title>
 
 <style>
-/* ===== RESET ===== */
 *{
-  box-sizing:border-box;
   margin:0;
   padding:0;
-  font-family: Arial, sans-serif;
+  box-sizing:border-box;
+  font-family:Arial, Helvetica, sans-serif;
 }
 
-/* ===== BACKGROUND MAX ===== */
 body{
-  min-height:100vh;
-  background:url("background.jpg") no-repeat center center fixed;
-  background-size:cover;
+  height:100vh;
   display:flex;
-  align-items:center;
   justify-content:center;
-  color:white;
+  align-items:center;
+  background:url("background.jpg") center/cover no-repeat;
+  overflow:hidden;
+  transition:0.4s;
 }
 
-/* overlay blur */
+/* blur nền */
 body::before{
   content:"";
   position:fixed;
   inset:0;
-  backdrop-filter: blur(10px);
-  background: rgba(0,0,0,0.35);
+  backdrop-filter:blur(20px);
 }
 
-/* ===== PLAYER BOX ===== */
-.player-box{
+/* player card */
+.player{
   position:relative;
-  z-index:1;
-  width:320px;
-  padding:25px;
-  border-radius:20px;
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  width:260px;
+  padding:20px;
+  border-radius:25px;
+  background:rgba(255,255,255,0.12);
+  backdrop-filter:blur(25px);
   text-align:center;
-  animation: fadeIn .6s ease;
+  color:#fff;
+  box-shadow:0 0 40px rgba(0,0,0,0.4);
 }
 
-@keyframes fadeIn{
-  from{opacity:0; transform:translateY(20px)}
-  to{opacity:1; transform:none}
+/* disc */
+.disc{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  object-fit:cover;
+  margin:10px auto;
+  display:block;
+  box-shadow:0 0 20px rgba(0,0,0,0.5);
 }
 
-h1{
-  font-size:20px;
-  margin-bottom:10px;
+/* quay */
+.spin{
+  animation:spin 4s linear infinite;
 }
 
-#songName{
-  margin:10px 0;
-  font-weight:bold;
-  color:#00ffd5;
+@keyframes spin{
+  from{transform:rotate(0)}
+  to{transform:rotate(360deg)}
 }
 
-/* ===== BUTTONS ===== */
-.controls button{
-  padding:8px 12px;
-  margin:4px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  background:#ffffff20;
-  color:white;
-  transition:.2s;
-}
-
-.controls button:hover{
-  background:#00ffd580;
-  transform:scale(1.08);
-}
-
-/* ===== PROGRESS ===== */
+/* progress */
 .progress{
   width:100%;
-  margin:10px 0;
+  margin:12px 0;
 }
 
-/* ===== PLAYLIST ===== */
-.playlist{
-  text-align:left;
-  max-height:140px;
-  overflow:auto;
+/* time */
+.time{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  opacity:.9;
+}
+
+/* buttons */
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:10px;
   margin-top:10px;
+}
+
+button{
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  background:rgba(255,255,255,0.2);
+  color:#fff;
   font-size:14px;
+}
+
+button:hover{
+  background:rgba(255,255,255,0.35);
+}
+
+/* playlist */
+.playlist{
+  margin-top:12px;
+  text-align:left;
+  font-size:13px;
+  max-height:120px;
+  overflow:auto;
 }
 
 .playlist div{
   padding:4px;
   cursor:pointer;
-  border-radius:6px;
 }
 
 .playlist div:hover{
-  background:#ffffff20;
-}
-
-.active{
-  color:#00ffd5;
-}
-
-/* ===== MOBILE ===== */
-@media(max-width:480px){
-  .player-box{
-    width:92%;
-  }
+  color:#00ffcc;
 }
 </style>
 </head>
 
 <body>
 
-<div class="player-box">
-  <h1>🎧 Hung Music Player</h1>
-  <div id="songName">Loading...</div>
+<div class="player">
+  <h3>🎧 GaaraChillChill</h3>
 
-  <audio id="player"></audio>
+  <img id="disc" class="disc" src="cover.jpg">
 
-  <input type="range" id="progressBar" class="progress" value="0">
+  <div id="songName">song1.mp3</div>
 
-  <div class="controls">
-    <button onclick="prevSong()">⏮</button>
-    <button onclick="togglePlay()">▶️</button>
-    <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleShuffle()">🔀</button>
-    <button onclick="toggleRepeat()">🔁</button>
+  <input id="progress" class="progress" type="range" value="0" min="0" max="100">
+
+  <div class="time">
+    <span id="current">0:00</span>
+    <span id="duration">0:00</span>
   </div>
 
-  🔊 <input type="range" min="0" max="1" step="0.01"
-      onchange="player.volume=this.value" value="1">
+  <div class="controls">
+    <button id="prev">⏮</button>
+    <button id="play">▶</button>
+    <button id="next">⏭</button>
+  </div>
 
-  <div id="playlistBox" class="playlist"></div>
+  <div id="playlist" class="playlist"></div>
 </div>
 
+<audio id="audio"></audio>
+
 <script>
-/* ===== TITLE CHẠY ===== */
-let titleText=" 🎧 Hung Music Player ";
-setInterval(()=>{
-  document.title=titleText;
-  titleText=titleText.substring(1)+titleText[0];
-},200);
-
-/* ===== BIẾN ===== */
-const player=document.getElementById("player");
-const songName=document.getElementById("songName");
-const progressBar=document.getElementById("progressBar");
-const playlistBox=document.getElementById("playlistBox");
-
-/* 🔥 AUTO LOAD PLAYLIST (mày chỉ cần thêm mp3 vào repo) */
-let playlist=[
+const songs = [
   "song1.mp3",
   "song2.mp3",
   "song3.mp3",
-  "song4.mp3",
-  "Figure.09.mp3"
+  "song4.mp3"
 ];
 
-let index=0;
-let isShuffle=false;
-let isRepeat=false;
+const audio = document.getElementById("audio");
+const playBtn = document.getElementById("play");
+const prevBtn = document.getElementById("prev");
+const nextBtn = document.getElementById("next");
+const progress = document.getElementById("progress");
+const disc = document.getElementById("disc");
+const songName = document.getElementById("songName");
+const playlist = document.getElementById("playlist");
+const currentEl = document.getElementById("current");
+const durationEl = document.getElementById("duration");
 
-/* ===== LOAD ===== */
+let index = 0;
+let isPlaying = false;
+
+/* ===== load song ===== */
 function loadSong(i){
-  index=i;
-  player.src=playlist[index];
-  player.play();
-  updateName();
-  renderPlaylist();
+  audio.src = songs[i];
+  songName.textContent = songs[i];
 }
+loadSong(index);
 
-function updateName(){
-  songName.innerText="🎵 "+playlist[index];
-}
-
-/* ===== PLAY ===== */
-function togglePlay(){
-  if(player.paused) player.play();
-  else player.pause();
-}
-
-/* ===== NEXT ===== */
-function nextSong(){
-  if(isShuffle){
-    index=Math.floor(Math.random()*playlist.length);
-  }else{
-    index=(index+1)%playlist.length;
+/* ===== play pause ===== */
+playBtn.onclick = async () => {
+  try{
+    if(isPlaying){
+      audio.pause();
+      disc.classList.remove("spin");
+      playBtn.textContent="▶";
+      isPlaying=false;
+    }else{
+      await audio.play();
+      disc.classList.add("spin");
+      playBtn.textContent="⏸";
+      isPlaying=true;
+    }
+  }catch(err){
+    console.error("Play lỗi:",err);
   }
+};
+
+/* ===== next prev ===== */
+nextBtn.onclick = () => {
+  index = (index+1)%songs.length;
   loadSong(index);
-}
+  audio.play();
+  disc.classList.add("spin");
+  playBtn.textContent="⏸";
+  isPlaying=true;
+};
 
-/* ===== PREV ===== */
-function prevSong(){
-  index=(index-1+playlist.length)%playlist.length;
+prevBtn.onclick = () => {
+  index = (index-1+songs.length)%songs.length;
   loadSong(index);
-}
-
-/* ===== SHUFFLE ===== */
-function toggleShuffle(){
-  isShuffle=!isShuffle;
-  alert("Shuffle: "+(isShuffle?"ON":"OFF"));
-}
-
-/* ===== REPEAT ===== */
-function toggleRepeat(){
-  isRepeat=!isRepeat;
-  player.loop=isRepeat;
-  alert("Repeat: "+(isRepeat?"ON":"OFF"));
-}
-
-/* ===== PROGRESS ===== */
-player.ontimeupdate=()=>{
-  progressBar.value=(player.currentTime/player.duration)*100||0;
+  audio.play();
+  disc.classList.add("spin");
+  playBtn.textContent="⏸";
+  isPlaying=true;
 };
 
-progressBar.oninput=()=>{
-  player.currentTime=(progressBar.value/100)*player.duration;
+/* ===== progress ===== */
+audio.ontimeupdate = () => {
+  if(audio.duration){
+    progress.value = (audio.currentTime/audio.duration)*100;
+
+    currentEl.textContent = formatTime(audio.currentTime);
+    durationEl.textContent = formatTime(audio.duration);
+
+    // 🌈 fake đổi màu theo beat
+    document.body.style.filter =
+      `hue-rotate(${audio.currentTime*40}deg)`;
+  }
 };
 
-/* ===== PLAYLIST UI ===== */
-function renderPlaylist(){
-  playlistBox.innerHTML="";
-  playlist.forEach((song,i)=>{
-    const div=document.createElement("div");
-    div.textContent=song;
-    if(i===index) div.classList.add("active");
-    div.onclick=()=>loadSong(i);
-    playlistBox.appendChild(div);
-  });
+progress.oninput = () => {
+  audio.currentTime = (progress.value/100)*audio.duration;
+};
+
+/* ===== format time ===== */
+function formatTime(t){
+  let m = Math.floor(t/60);
+  let s = Math.floor(t%60);
+  if(s<10) s="0"+s;
+  return m+":"+s;
 }
 
-/* ===== AUTO NEXT ===== */
-player.onended=()=>{
-  if(!isRepeat) nextSong();
-};
-
-/* ===== START ===== */
-loadSong(0);
+/* ===== playlist render ===== */
+songs.forEach((s,i)=>{
+  const div=document.createElement("div");
+  div.textContent=s;
+  div.onclick=()=>{
+    index=i;
+    loadSong(index);
+    audio.play();
+    disc.classList.add("spin");
+    playBtn.textContent="⏸";
+    isPlaying=true;
+  };
+  playlist.appendChild(div);
+});
 </script>
 
 </body>
