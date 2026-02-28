@@ -5,190 +5,246 @@
 <title>🎧 Hung Music Player</title>
 
 <style>
-body{
+/* ===== RESET ===== */
+*{
+  box-sizing:border-box;
   margin:0;
-  font-family:Arial;
-  background:url("background.jpg") no-repeat center/cover;
-  backdrop-filter:blur(5px);
+  padding:0;
+  font-family: Arial, sans-serif;
+}
+
+/* ===== BACKGROUND MAX ===== */
+body{
+  min-height:100vh;
+  background:url("background.jpg") no-repeat center center fixed;
+  background-size:cover;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   color:white;
-  text-align:center;
 }
 
-.container{
-  margin:50px auto;
-  width:400px;
-  background:rgba(0,0,0,0.6);
-  padding:20px;
+/* overlay blur */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.35);
+}
+
+/* ===== PLAYER BOX ===== */
+.player-box{
+  position:relative;
+  z-index:1;
+  width:320px;
+  padding:25px;
   border-radius:20px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+  text-align:center;
+  animation: fadeIn .6s ease;
 }
 
-h2{margin-bottom:10px}
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px)}
+  to{opacity:1; transform:none}
+}
 
-button{
+h1{
+  font-size:20px;
+  margin-bottom:10px;
+}
+
+#songName{
+  margin:10px 0;
+  font-weight:bold;
+  color:#00ffd5;
+}
+
+/* ===== BUTTONS ===== */
+.controls button{
   padding:8px 12px;
   margin:4px;
   border:none;
   border-radius:8px;
   cursor:pointer;
+  background:#ffffff20;
+  color:white;
+  transition:.2s;
 }
 
-input[type=range]{
+.controls button:hover{
+  background:#00ffd580;
+  transform:scale(1.08);
+}
+
+/* ===== PROGRESS ===== */
+.progress{
   width:100%;
+  margin:10px 0;
 }
 
+/* ===== PLAYLIST ===== */
 .playlist{
   text-align:left;
-  max-height:200px;
-  overflow-y:auto;
+  max-height:140px;
+  overflow:auto;
   margin-top:10px;
+  font-size:14px;
 }
 
-.song-item{
-  padding:5px;
+.playlist div{
+  padding:4px;
   cursor:pointer;
+  border-radius:6px;
 }
 
-.song-item:hover{
-  background:rgba(255,255,255,0.2);
+.playlist div:hover{
+  background:#ffffff20;
 }
+
 .active{
-  color:#00ffcc;
+  color:#00ffd5;
+}
+
+/* ===== MOBILE ===== */
+@media(max-width:480px){
+  .player-box{
+    width:92%;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-  <h2 id="songTitle">Đang tải...</h2>
+<div class="player-box">
+  <h1>🎧 Hung Music Player</h1>
+  <div id="songName">Loading...</div>
 
   <audio id="player"></audio>
 
-  <div>
-    <button onclick="prev()">⏮</button>
-    <button onclick="togglePlay()">▶ / ⏸</button>
-    <button onclick="next()">⏭</button>
-    <button onclick="shuffleToggle()">🔀</button>
-    <button onclick="repeatToggle()">🔁</button>
+  <input type="range" id="progressBar" class="progress" value="0">
+
+  <div class="controls">
+    <button onclick="prevSong()">⏮</button>
+    <button onclick="togglePlay()">▶️</button>
+    <button onclick="nextSong()">⏭</button>
+    <button onclick="toggleShuffle()">🔀</button>
+    <button onclick="toggleRepeat()">🔁</button>
   </div>
 
-  <input type="range" id="progress" value="0">
-  <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+  🔊 <input type="range" min="0" max="1" step="0.01"
+      onchange="player.volume=this.value" value="1">
 
-  <div class="playlist" id="playlistUI"></div>
+  <div id="playlistBox" class="playlist"></div>
 </div>
 
 <script>
-const USERNAME = "hungvippros1vutru";
-const REPO = "hungvippros1vutru.github.io";
+/* ===== TITLE CHẠY ===== */
+let titleText=" 🎧 Hung Music Player ";
+setInterval(()=>{
+  document.title=titleText;
+  titleText=titleText.substring(1)+titleText[0];
+},200);
 
-const player = document.getElementById("player");
-const title = document.getElementById("songTitle");
-const playlistUI = document.getElementById("playlistUI");
-const progress = document.getElementById("progress");
-const volume = document.getElementById("volume");
+/* ===== BIẾN ===== */
+const player=document.getElementById("player");
+const songName=document.getElementById("songName");
+const progressBar=document.getElementById("progressBar");
+const playlistBox=document.getElementById("playlistBox");
 
-let playlist = [];
-let index = 0;
-let isShuffle = false;
-let isRepeat = false;
+/* 🔥 AUTO LOAD PLAYLIST (mày chỉ cần thêm mp3 vào repo) */
+let playlist=[
+  "song1.mp3",
+  "song2.mp3",
+  "song3.mp3",
+  "song4.mp3",
+  "Figure.09.mp3"
+];
 
-async function loadSongs(){
-  const res = await fetch(
-    `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`
-  );
-  const data = await res.json();
+let index=0;
+let isShuffle=false;
+let isRepeat=false;
 
-  playlist = data
-    .filter(f => f.name.endsWith(".mp3"))
-    .map(f => ({
-      name: f.name,
-      url: f.download_url
-    }));
-
-  renderPlaylist();
-  if(playlist.length>0){
-    loadSong(0);
-  } else {
-    title.innerText = "❌ Không có mp3";
-  }
-}
-
-function renderPlaylist(){
-  playlistUI.innerHTML="";
-  playlist.forEach((song,i)=>{
-    const div=document.createElement("div");
-    div.className="song-item";
-    div.innerText=song.name;
-    div.onclick=()=>loadSong(i);
-    playlistUI.appendChild(div);
-  });
-}
-
+/* ===== LOAD ===== */
 function loadSong(i){
   index=i;
-  player.src=playlist[index].url;
-  title.innerText="🎵 "+playlist[index].name;
-  highlight();
+  player.src=playlist[index];
   player.play();
+  updateName();
+  renderPlaylist();
 }
 
-function highlight(){
-  document.querySelectorAll(".song-item").forEach((el,i)=>{
-    el.classList.toggle("active",i===index);
-  });
+function updateName(){
+  songName.innerText="🎵 "+playlist[index];
 }
 
+/* ===== PLAY ===== */
 function togglePlay(){
   if(player.paused) player.play();
   else player.pause();
 }
 
-function next(){
+/* ===== NEXT ===== */
+function nextSong(){
   if(isShuffle){
     index=Math.floor(Math.random()*playlist.length);
-  } else {
+  }else{
     index=(index+1)%playlist.length;
   }
   loadSong(index);
 }
 
-function prev(){
+/* ===== PREV ===== */
+function prevSong(){
   index=(index-1+playlist.length)%playlist.length;
   loadSong(index);
 }
 
-function shuffleToggle(){
+/* ===== SHUFFLE ===== */
+function toggleShuffle(){
   isShuffle=!isShuffle;
-  alert("Shuffle: "+isShuffle);
+  alert("Shuffle: "+(isShuffle?"ON":"OFF"));
 }
 
-function repeatToggle(){
+/* ===== REPEAT ===== */
+function toggleRepeat(){
   isRepeat=!isRepeat;
-  alert("Repeat: "+isRepeat);
+  player.loop=isRepeat;
+  alert("Repeat: "+(isRepeat?"ON":"OFF"));
 }
 
-player.addEventListener("ended",()=>{
-  if(isRepeat){
-    loadSong(index);
-  } else {
-    next();
-  }
-});
+/* ===== PROGRESS ===== */
+player.ontimeupdate=()=>{
+  progressBar.value=(player.currentTime/player.duration)*100||0;
+};
 
-player.addEventListener("timeupdate",()=>{
-  progress.value=(player.currentTime/player.duration)*100 || 0;
-});
+progressBar.oninput=()=>{
+  player.currentTime=(progressBar.value/100)*player.duration;
+};
 
-progress.addEventListener("input",()=>{
-  player.currentTime=(progress.value/100)*player.duration;
-});
+/* ===== PLAYLIST UI ===== */
+function renderPlaylist(){
+  playlistBox.innerHTML="";
+  playlist.forEach((song,i)=>{
+    const div=document.createElement("div");
+    div.textContent=song;
+    if(i===index) div.classList.add("active");
+    div.onclick=()=>loadSong(i);
+    playlistBox.appendChild(div);
+  });
+}
 
-volume.addEventListener("input",()=>{
-  player.volume=volume.value;
-});
+/* ===== AUTO NEXT ===== */
+player.onended=()=>{
+  if(!isRepeat) nextSong();
+};
 
-loadSongs();
+/* ===== START ===== */
+loadSong(0);
 </script>
 
 </body>
