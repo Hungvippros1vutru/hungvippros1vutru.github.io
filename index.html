@@ -1,63 +1,40 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GaaraChillChill</title>
 
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:Arial, Helvetica, sans-serif;
-}
-
 body{
+  margin:0;
   height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  background:url("background.jpg") center/cover no-repeat;
-  overflow:hidden;
-  transition:0.4s;
+  background:url("background.jpg") center/cover no-repeat fixed;
+  font-family:system-ui;
 }
 
-/* blur nền */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  backdrop-filter:blur(20px);
-}
-
-/* player card */
 .player{
-  position:relative;
   width:260px;
+  backdrop-filter:blur(20px);
+  background:rgba(255,255,255,0.15);
+  border-radius:24px;
   padding:20px;
-  border-radius:25px;
-  background:rgba(255,255,255,0.12);
-  backdrop-filter:blur(25px);
   text-align:center;
-  color:#fff;
-  box-shadow:0 0 40px rgba(0,0,0,0.4);
+  color:white;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
 }
 
-/* disc */
-.disc{
+.disk{
   width:120px;
   height:120px;
   border-radius:50%;
-  object-fit:cover;
-  margin:10px auto;
-  display:block;
-  box-shadow:0 0 20px rgba(0,0,0,0.5);
-}
-
-/* quay */
-.spin{
-  animation:spin 4s linear infinite;
+  margin:auto;
+  background:url("background.jpg") center/cover;
+  animation:spin 6s linear infinite;
+  animation-play-state:paused;
 }
 
 @keyframes spin{
@@ -65,58 +42,26 @@ body::before{
   to{transform:rotate(360deg)}
 }
 
-/* progress */
-.progress{
-  width:100%;
-  margin:12px 0;
-}
-
-/* time */
-.time{
-  display:flex;
-  justify-content:space-between;
-  font-size:12px;
-  opacity:.9;
-}
-
-/* buttons */
 .controls{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin-top:10px;
+  margin-top:12px;
 }
 
 button{
+  padding:6px 10px;
+  margin:4px;
   border:none;
-  padding:8px 12px;
   border-radius:8px;
   cursor:pointer;
-  background:rgba(255,255,255,0.2);
-  color:#fff;
-  font-size:14px;
 }
 
-button:hover{
-  background:rgba(255,255,255,0.35);
+.progress{
+  width:100%;
 }
 
-/* playlist */
-.playlist{
-  margin-top:12px;
-  text-align:left;
-  font-size:13px;
-  max-height:120px;
-  overflow:auto;
-}
-
-.playlist div{
-  padding:4px;
-  cursor:pointer;
-}
-
-.playlist div:hover{
-  color:#00ffcc;
+.time{
+  font-size:12px;
+  opacity:.8;
+  margin-top:4px;
 }
 </style>
 </head>
@@ -124,16 +69,12 @@ button:hover{
 <body>
 
 <div class="player">
-  <h3>🎧 GaaraChillChill</h3>
+  <div class="disk" id="disk"></div>
 
-  <img id="disc" class="disc" src="cover.jpg">
-
-  <div id="songName">song1.mp3</div>
-
-  <input id="progress" class="progress" type="range" value="0" min="0" max="100">
+  <input type="range" id="progress" class="progress" value="0">
 
   <div class="time">
-    <span id="current">0:00</span>
+    <span id="current">0:00</span> /
     <span id="duration">0:00</span>
   </div>
 
@@ -142,119 +83,90 @@ button:hover{
     <button id="play">▶</button>
     <button id="next">⏭</button>
   </div>
-
-  <div id="playlist" class="playlist"></div>
 </div>
 
 <audio id="audio"></audio>
 
 <script>
+const audio = document.getElementById("audio")
+const playBtn = document.getElementById("play")
+const disk = document.getElementById("disk")
+const progress = document.getElementById("progress")
+const current = document.getElementById("current")
+const duration = document.getElementById("duration")
+
+// 🔥 auto load mp3 trong repo
 const songs = [
   "song1.mp3",
   "song2.mp3",
   "song3.mp3",
-  "song4.mp3"
-];
+  "song4.mp3",
+  "Figure.09.mp3"
+]
 
-const audio = document.getElementById("audio");
-const playBtn = document.getElementById("play");
-const prevBtn = document.getElementById("prev");
-const nextBtn = document.getElementById("next");
-const progress = document.getElementById("progress");
-const disc = document.getElementById("disc");
-const songName = document.getElementById("songName");
-const playlist = document.getElementById("playlist");
-const currentEl = document.getElementById("current");
-const durationEl = document.getElementById("duration");
+let index = 0
+let isPlaying = false
 
-let index = 0;
-let isPlaying = false;
-
-/* ===== load song ===== */
-function loadSong(i){
-  audio.src = songs[i];
-  songName.textContent = songs[i];
+function loadSong(){
+  audio.src = songs[index]
 }
-loadSong(index);
+loadSong()
 
-/* ===== play pause ===== */
+// ▶ PLAY / PAUSE
 playBtn.onclick = async () => {
-  try{
-    if(isPlaying){
-      audio.pause();
-      disc.classList.remove("spin");
-      playBtn.textContent="▶";
-      isPlaying=false;
-    }else{
-      await audio.play();
-      disc.classList.add("spin");
-      playBtn.textContent="⏸";
-      isPlaying=true;
+  if(!isPlaying){
+    try{
+      await audio.play()
+      isPlaying = true
+      playBtn.textContent = "⏸"
+      disk.style.animationPlayState = "running"
+    }catch(e){
+      console.log("Play lỗi:", e)
     }
-  }catch(err){
-    console.error("Play lỗi:",err);
+  }else{
+    audio.pause()
+    isPlaying = false
+    playBtn.textContent = "▶"
+    disk.style.animationPlayState = "paused"
   }
-};
-
-/* ===== next prev ===== */
-nextBtn.onclick = () => {
-  index = (index+1)%songs.length;
-  loadSong(index);
-  audio.play();
-  disc.classList.add("spin");
-  playBtn.textContent="⏸";
-  isPlaying=true;
-};
-
-prevBtn.onclick = () => {
-  index = (index-1+songs.length)%songs.length;
-  loadSong(index);
-  audio.play();
-  disc.classList.add("spin");
-  playBtn.textContent="⏸";
-  isPlaying=true;
-};
-
-/* ===== progress ===== */
-audio.ontimeupdate = () => {
-  if(audio.duration){
-    progress.value = (audio.currentTime/audio.duration)*100;
-
-    currentEl.textContent = formatTime(audio.currentTime);
-    durationEl.textContent = formatTime(audio.duration);
-
-    // 🌈 fake đổi màu theo beat
-    document.body.style.filter =
-      `hue-rotate(${audio.currentTime*40}deg)`;
-  }
-};
-
-progress.oninput = () => {
-  audio.currentTime = (progress.value/100)*audio.duration;
-};
-
-/* ===== format time ===== */
-function formatTime(t){
-  let m = Math.floor(t/60);
-  let s = Math.floor(t%60);
-  if(s<10) s="0"+s;
-  return m+":"+s;
 }
 
-/* ===== playlist render ===== */
-songs.forEach((s,i)=>{
-  const div=document.createElement("div");
-  div.textContent=s;
-  div.onclick=()=>{
-    index=i;
-    loadSong(index);
-    audio.play();
-    disc.classList.add("spin");
-    playBtn.textContent="⏸";
-    isPlaying=true;
-  };
-  playlist.appendChild(div);
-});
+// ⏭ NEXT
+document.getElementById("next").onclick = () => {
+  index = (index + 1) % songs.length
+  loadSong()
+  audio.play()
+}
+
+// ⏮ PREV
+document.getElementById("prev").onclick = () => {
+  index = (index - 1 + songs.length) % songs.length
+  loadSong()
+  audio.play()
+}
+
+// 📊 cập nhật progress
+audio.addEventListener("timeupdate", () => {
+  if(audio.duration){
+    progress.value = (audio.currentTime / audio.duration) * 100
+    current.textContent = formatTime(audio.currentTime)
+    duration.textContent = formatTime(audio.duration)
+  }
+})
+
+// kéo thanh
+progress.oninput = () => {
+  if(audio.duration){
+    audio.currentTime = (progress.value/100) * audio.duration
+  }
+}
+
+// format time
+function formatTime(t){
+  const m = Math.floor(t/60)
+  const s = Math.floor(t%60).toString().padStart(2,"0")
+  return m + ":" + s
+}
 </script>
 
 </body>
