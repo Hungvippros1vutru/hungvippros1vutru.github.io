@@ -2,289 +2,164 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>🎧 Gaara Bão Cát </title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gaara Bão Cát</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial}
-
-/* ===== BACKGROUND ===== */
-body{
-  min-height:100vh;
-  background:url("background.jpg") no-repeat center center fixed;
-  background-size:cover;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:white;
-  overflow:hidden;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  transition: background 0.3s linear;
 }
 
-/* blur overlay */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  backdrop-filter: blur(12px);
-  background:rgba(0,0,0,.35);
+.player {
+  width: 320px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(20px);
+  border-radius: 25px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
 }
 
-/* ===== PLAYER ===== */
-.player-box{
-  position:relative;
-  z-index:1;
-  width:340px;
-  padding:25px;
-  border-radius:22px;
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(25px);
-  box-shadow:0 0 60px rgba(0,255,213,.25);
-  text-align:center;
+.cover {
+  width: 220px;
+  height: 220px;
+  margin: auto;
+  border-radius: 20px;
+  object-fit: cover;
+  box-shadow: 0 0 25px rgba(0,0,0,0.6);
+  transition: 0.3s;
 }
 
-/* ===== DISC ===== */
-.disc{
-  width:120px;
-  height:120px;
-  margin:10px auto;
-  border-radius:50%;
-  background:url("background.jpg") center/cover;
-  box-shadow:0 0 25px rgba(0,255,213,.6);
-  animation:spin 5s linear infinite;
-  animation-play-state:paused;
+.title {
+  margin: 15px 0;
+  font-size: 18px;
 }
 
-.disc.playing{
-  animation-play-state:running;
+.controls button {
+  margin: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 50%;
+  background: #ff4757;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-@keyframes spin{
-  from{transform:rotate(0)}
-  to{transform:rotate(360deg)}
+.progress {
+  width: 100%;
 }
 
-/* ===== TEXT ===== */
-h1{font-size:20px}
-#songName{margin:10px;color:#00ffd5;font-weight:bold}
-
-/* ===== BUTTON ===== */
-.controls button{
-  padding:8px 12px;
-  margin:4px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  background:#ffffff20;
-  color:white;
-  transition:.2s;
-}
-
-.controls button:hover{
-  background:#00ffd580;
-  transform:scale(1.1);
-}
-
-/* ===== PROGRESS ===== */
-.progress{width:100%;margin:10px 0}
-
-/* ===== PLAYLIST ===== */
-.playlist{
-  text-align:left;
-  max-height:130px;
-  overflow:auto;
-  margin-top:10px;
-  font-size:14px;
-}
-
-.playlist div{
-  padding:4px;
-  cursor:pointer;
-  border-radius:6px;
-}
-
-.playlist div:hover{background:#ffffff20}
-.active{color:#00ffd5}
-
-/* ===== VISUALIZER ===== */
-canvas{
-  width:100%;
-  height:60px;
-  margin-top:10px;
-}
-
-/* ===== MOBILE ===== */
-@media(max-width:480px){
-  .player-box{width:92%}
-}
 </style>
 </head>
-
 <body>
 
-<div class="player-box">
-  <h1>🎧 Hung Music Player</h1>
+<div class="player">
+  <img id="cover" class="cover" src="">
+  <div id="title" class="title">Loading...</div>
 
-  <div class="disc" id="disc"></div>
-
-  <div id="songName">Loading...</div>
-
-  <audio id="player"></audio>
-  <canvas id="visualizer"></canvas>
-
-  <input type="range" id="progressBar" class="progress" value="0">
+  <audio id="audio" controls class="progress"></audio>
 
   <div class="controls">
-    <button onclick="prevSong()">⏮</button>
-    <button onclick="togglePlay()">▶️</button>
-    <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleShuffle()">🔀</button>
-    <button onclick="toggleRepeat()">🔁</button>
+    <button onclick="prev()">⏮</button>
+    <button onclick="toggle()">▶</button>
+    <button onclick="next()">⏭</button>
   </div>
-
-  🔊 <input type="range" min="0" max="1" step="0.01"
-      onchange="player.volume=this.value" value="1">
-
-  <div id="playlistBox" class="playlist"></div>
 </div>
 
 <script>
-/* ===== TITLE CHẠY ===== */
-let titleText=" 🎧 Hung Music Player ";
-setInterval(()=>{
-  document.title=titleText;
-  titleText=titleText.substring(1)+titleText[0];
-},200);
+const audio = document.getElementById("audio");
+const title = document.getElementById("title");
+const cover = document.getElementById("cover");
 
-/* ===== BIẾN ===== */
-const player=document.getElementById("player");
-const songName=document.getElementById("songName");
-const progressBar=document.getElementById("progressBar");
-const playlistBox=document.getElementById("playlistBox");
-const disc=document.getElementById("disc");
+let songs = [];
+let current = 0;
+let analyser, dataArray;
 
-/* ===== PLAYLIST (chỉ thêm mp3 vào đây) ===== */
-let playlist=[
-  "song1.mp3",
-  "song2.mp3",
-  "song3.mp3",
-  "song4.mp3",
-  "Figure.09.mp3"
-];
+// 🔥 AUTO LOAD MP3
+async function loadSongs() {
+  const res = await fetch("./music/");
+  const text = await res.text();
+  const doc = new DOMParser().parseFromString(text, "text/html");
 
-let index=0;
-let isShuffle=false;
-let isRepeat=false;
+  songs = [...doc.querySelectorAll("a")]
+    .map(a => a.href)
+    .filter(h => h.endsWith(".mp3"));
 
-/* ===== LOAD ===== */
-function loadSong(i){
-  index=i;
-  player.src=playlist[index];
-  player.play();
-  updateName();
-  renderPlaylist();
-  disc.classList.add("playing");
+  loadSong(0);
 }
 
-function updateName(){
-  songName.innerText="🎵 "+playlist[index];
+function getName(path) {
+  return decodeURIComponent(path.split("/").pop());
 }
 
-/* ===== PLAY ===== */
-function togglePlay(){
-  if(player.paused){
-    player.play();
-    disc.classList.add("playing");
-  }else{
-    player.pause();
-    disc.classList.remove("playing");
-  }
+// 🎵 LOAD SONG
+function loadSong(index) {
+  if (!songs.length) return;
+
+  current = index;
+  audio.src = songs[current];
+
+  const name = getName(songs[current]).replace(".mp3", "");
+  title.textContent = name;
+
+  // 🔥 AUTO LOAD COVER
+  cover.src = `./covers/${name}.jpg`;
+
+  audio.play();
 }
 
-/* ===== NEXT ===== */
-function nextSong(){
-  if(isShuffle){
-    index=Math.floor(Math.random()*playlist.length);
-  }else{
-    index=(index+1)%playlist.length;
-  }
-  loadSong(index);
+// ▶ PLAY/PAUSE
+function toggle() {
+  if (audio.paused) audio.play();
+  else audio.pause();
 }
 
-/* ===== PREV ===== */
-function prevSong(){
-  index=(index-1+playlist.length)%playlist.length;
-  loadSong(index);
+function next() {
+  loadSong((current + 1) % songs.length);
 }
 
-/* ===== SHUFFLE ===== */
-function toggleShuffle(){
-  isShuffle=!isShuffle;
+function prev() {
+  loadSong((current - 1 + songs.length) % songs.length);
 }
 
-/* ===== REPEAT ===== */
-function toggleRepeat(){
-  isRepeat=!isRepeat;
-  player.loop=isRepeat;
-}
+// 🎧 BEAT COLOR EFFECT (GOD LEVEL)
+audio.onplay = () => {
+  const ctx = new AudioContext();
+  const src = ctx.createMediaElementSource(audio);
+  analyser = ctx.createAnalyser();
+  src.connect(analyser);
+  analyser.connect(ctx.destination);
 
-/* ===== PROGRESS ===== */
-player.ontimeupdate=()=>{
-  progressBar.value=(player.currentTime/player.duration)*100||0;
+  analyser.fftSize = 64;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+  beatLoop();
 };
 
-progressBar.oninput=()=>{
-  player.currentTime=(progressBar.value/100)*player.duration;
-};
+function beatLoop() {
+  if (!analyser) return;
 
-/* ===== PLAYLIST UI ===== */
-function renderPlaylist(){
-  playlistBox.innerHTML="";
-  playlist.forEach((song,i)=>{
-    const div=document.createElement("div");
-    div.textContent=song;
-    if(i===index) div.classList.add("active");
-    div.onclick=()=>loadSong(i);
-    playlistBox.appendChild(div);
-  });
-}
-
-/* ===== AUTO NEXT ===== */
-player.onended=()=>{
-  if(!isRepeat) nextSong();
-};
-
-/* ===== VISUALIZER ===== */
-const ctxAudio=new AudioContext();
-const analyser=ctxAudio.createAnalyser();
-const src=ctxAudio.createMediaElementSource(player);
-src.connect(analyser);
-analyser.connect(ctxAudio.destination);
-
-const canvas=document.getElementById("visualizer");
-const ctx=canvas.getContext("2d");
-analyser.fftSize=64;
-const bufferLength=analyser.frequencyBinCount;
-const dataArray=new Uint8Array(bufferLength);
-
-function draw(){
-  requestAnimationFrame(draw);
   analyser.getByteFrequencyData(dataArray);
+  const avg = dataArray.reduce((a,b)=>a+b,0)/dataArray.length;
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const hue = avg * 2;
+  document.body.style.background =
+    `linear-gradient(135deg, hsl(${hue},70%,20%), hsl(${hue+60},70%,25%), hsl(${hue+120},70%,30%))`;
 
-  let barWidth=(canvas.width/bufferLength)*1.5;
-  let x=0;
-
-  for(let i=0;i<bufferLength;i++){
-    let barHeight=dataArray[i]/2;
-    ctx.fillStyle="rgb(0,255,213)";
-    ctx.fillRect(x,canvas.height-barHeight,barWidth,barHeight);
-    x+=barWidth+2;
-  }
+  requestAnimationFrame(beatLoop);
 }
-draw();
 
-/* ===== START ===== */
-loadSong(0);
+// 🚀 AUTO START
+loadSongs();
 </script>
 
 </body>
