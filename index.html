@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Boss Gaara</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: white;
+  text-align: center;
+  background: linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.6)),
+              url("background.jpg");
+  background-size: cover;
+  height: 100vh;
+}
+
+.player-box {
+  margin-top: 80px;
+}
+
+button {
+  padding: 8px 14px;
+  margin: 4px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+#songName {
+  font-size: 20px;
+  margin: 15px;
+  font-weight: bold;
+}
+
+.progress {
+  width: 60%;
+  height: 6px;
+  background: #555;
+  margin: 10px auto;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #1db954;
+  border-radius: 10px;
+}
+
+.volume {
+  width: 200px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="player-box">
+  <h1>🎧 Gaara Playlist chill 🎧</h1>
+
+  <div id="songName">Đang tải...</div>
+
+  <audio id="player"></audio>
+
+  <div class="progress" onclick="seek(event)">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div>
+    <button onclick="prevSong()">⏮</button>
+    <button onclick="togglePlay()">▶️ / ⏸</button>
+    <button onclick="nextSong()">⏭</button>
+    <button onclick="toggleShuffle()">🔀</button>
+    <button onclick="toggleRepeat()">🔁</button>
+  </div>
+
+  <br>
+  🔊 <input type="range" class="volume" min="0" max="1" step="0.01"
+       onchange="player.volume=this.value" value="1">
+</div>
+
+<script>
+// ===== TITLE CHẠY =====
+let titleText = "🎧 Nơi chill của Gaara 😎   ";
+setInterval(()=>{
+  document.title = titleText;
+  titleText = titleText.substring(1) + titleText[0];
+},200);
+
+// ===== BIẾN =====
+const player = document.getElementById("player");
+const songName = document.getElementById("songName");
+const progressBar = document.getElementById("progressBar");
+
+let playlist = [
+ "song1.mp3",
+  "song2.mp3",
+  "song3.mp3"
+];
+
+let index = 0;
+let isShuffle = false;
+let isRepeat = false;
+
+// ===== LOAD =====
+function loadSong(i){
+  index = i;
+  player.src = playlist[index];
+  player.play();
+  updateName();
+}
+
+function updateName(){
+  const name = playlist[index].split("/").pop();
+  songName.innerText = "🎵 " + name;
+}
+
+// ===== PLAY/PAUSE =====
+function togglePlay(){
+  if(player.paused) player.play();
+  else player.pause();
+}
+
+// ===== NEXT/PREV =====
+function nextSong(){
+  if(isShuffle){
+    index = Math.floor(Math.random()*playlist.length);
+  } else {
+    index = (index + 1) % playlist.length;
+  }
+  loadSong(index);
+}
+
+function prevSong(){
+  index = (index - 1 + playlist.length) % playlist.length;
+  loadSong(index);
+}
+
+// ===== SHUFFLE =====
+function toggleShuffle(){
+  isShuffle = !isShuffle;
+  alert("Shuffle: " + (isShuffle ? "ON" : "OFF"));
+}
+
+// ===== REPEAT =====
+function toggleRepeat(){
+  isRepeat = !isRepeat;
+  alert("Repeat: " + (isRepeat ? "ON" : "OFF"));
+}
+
+// ===== AUTO NEXT =====
+player.addEventListener("ended", ()=>{
+  if(isRepeat) loadSong(index);
+  else nextSong();
+});
+
+// ===== PROGRESS =====
+player.addEventListener("timeupdate", ()=>{
+  const percent = (player.currentTime / player.duration) * 100;
+  progressBar.style.width = percent + "%";
+});
+
+function seek(e){
+  const rect = e.currentTarget.getBoundingClientRect();
+  const percent = (e.clientX - rect.left) / rect.width;
+  player.currentTime = percent * player.duration;
+}
+
+// ===== START =====
+loadSong(0);
+</script>
+
+</body>
+</html>
