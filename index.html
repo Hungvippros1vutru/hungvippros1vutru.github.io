@@ -5,9 +5,15 @@
 <title>🎧 Hung Music Player</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial}
+/* ===== RESET ===== */
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family: Arial, sans-serif;
+}
 
-/* ===== BACKGROUND ===== */
+/* ===== BACKGROUND MAX ===== */
 body{
   min-height:100vh;
   background:url("background.jpg") no-repeat center center fixed;
@@ -16,57 +22,48 @@ body{
   align-items:center;
   justify-content:center;
   color:white;
-  overflow:hidden;
 }
 
-/* blur overlay */
+/* overlay blur */
 body::before{
   content:"";
   position:fixed;
   inset:0;
-  backdrop-filter: blur(12px);
-  background:rgba(0,0,0,.35);
+  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.35);
 }
 
-/* ===== PLAYER ===== */
+/* ===== PLAYER BOX ===== */
 .player-box{
   position:relative;
   z-index:1;
-  width:340px;
+  width:320px;
   padding:25px;
-  border-radius:22px;
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(25px);
-  box-shadow:0 0 60px rgba(0,255,213,.25);
+  border-radius:20px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
   text-align:center;
+  animation: fadeIn .6s ease;
 }
 
-/* ===== DISC ===== */
-.disc{
-  width:120px;
-  height:120px;
-  margin:10px auto;
-  border-radius:50%;
-  background:url("background.jpg") center/cover;
-  box-shadow:0 0 25px rgba(0,255,213,.6);
-  animation:spin 5s linear infinite;
-  animation-play-state:paused;
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px)}
+  to{opacity:1; transform:none}
 }
 
-.disc.playing{
-  animation-play-state:running;
+h1{
+  font-size:20px;
+  margin-bottom:10px;
 }
 
-@keyframes spin{
-  from{transform:rotate(0)}
-  to{transform:rotate(360deg)}
+#songName{
+  margin:10px 0;
+  font-weight:bold;
+  color:#00ffd5;
 }
 
-/* ===== TEXT ===== */
-h1{font-size:20px}
-#songName{margin:10px;color:#00ffd5;font-weight:bold}
-
-/* ===== BUTTON ===== */
+/* ===== BUTTONS ===== */
 .controls button{
   padding:8px 12px;
   margin:4px;
@@ -80,16 +77,19 @@ h1{font-size:20px}
 
 .controls button:hover{
   background:#00ffd580;
-  transform:scale(1.1);
+  transform:scale(1.08);
 }
 
 /* ===== PROGRESS ===== */
-.progress{width:100%;margin:10px 0}
+.progress{
+  width:100%;
+  margin:10px 0;
+}
 
 /* ===== PLAYLIST ===== */
 .playlist{
   text-align:left;
-  max-height:130px;
+  max-height:140px;
   overflow:auto;
   margin-top:10px;
   font-size:14px;
@@ -101,19 +101,19 @@ h1{font-size:20px}
   border-radius:6px;
 }
 
-.playlist div:hover{background:#ffffff20}
-.active{color:#00ffd5}
+.playlist div:hover{
+  background:#ffffff20;
+}
 
-/* ===== VISUALIZER ===== */
-canvas{
-  width:100%;
-  height:60px;
-  margin-top:10px;
+.active{
+  color:#00ffd5;
 }
 
 /* ===== MOBILE ===== */
 @media(max-width:480px){
-  .player-box{width:92%}
+  .player-box{
+    width:92%;
+  }
 }
 </style>
 </head>
@@ -122,13 +122,9 @@ canvas{
 
 <div class="player-box">
   <h1>🎧 Hung Music Player</h1>
-
-  <div class="disc" id="disc"></div>
-
   <div id="songName">Loading...</div>
 
   <audio id="player"></audio>
-  <canvas id="visualizer"></canvas>
 
   <input type="range" id="progressBar" class="progress" value="0">
 
@@ -159,9 +155,8 @@ const player=document.getElementById("player");
 const songName=document.getElementById("songName");
 const progressBar=document.getElementById("progressBar");
 const playlistBox=document.getElementById("playlistBox");
-const disc=document.getElementById("disc");
 
-/* ===== PLAYLIST (chỉ thêm mp3 vào đây) ===== */
+/* 🔥 AUTO LOAD PLAYLIST (mày chỉ cần thêm mp3 vào repo) */
 let playlist=[
   "song1.mp3",
   "song2.mp3",
@@ -181,7 +176,6 @@ function loadSong(i){
   player.play();
   updateName();
   renderPlaylist();
-  disc.classList.add("playing");
 }
 
 function updateName(){
@@ -190,13 +184,8 @@ function updateName(){
 
 /* ===== PLAY ===== */
 function togglePlay(){
-  if(player.paused){
-    player.play();
-    disc.classList.add("playing");
-  }else{
-    player.pause();
-    disc.classList.remove("playing");
-  }
+  if(player.paused) player.play();
+  else player.pause();
 }
 
 /* ===== NEXT ===== */
@@ -218,12 +207,14 @@ function prevSong(){
 /* ===== SHUFFLE ===== */
 function toggleShuffle(){
   isShuffle=!isShuffle;
+  alert("Shuffle: "+(isShuffle?"ON":"OFF"));
 }
 
 /* ===== REPEAT ===== */
 function toggleRepeat(){
   isRepeat=!isRepeat;
   player.loop=isRepeat;
+  alert("Repeat: "+(isRepeat?"ON":"OFF"));
 }
 
 /* ===== PROGRESS ===== */
@@ -251,37 +242,6 @@ function renderPlaylist(){
 player.onended=()=>{
   if(!isRepeat) nextSong();
 };
-
-/* ===== VISUALIZER ===== */
-const ctxAudio=new AudioContext();
-const analyser=ctxAudio.createAnalyser();
-const src=ctxAudio.createMediaElementSource(player);
-src.connect(analyser);
-analyser.connect(ctxAudio.destination);
-
-const canvas=document.getElementById("visualizer");
-const ctx=canvas.getContext("2d");
-analyser.fftSize=64;
-const bufferLength=analyser.frequencyBinCount;
-const dataArray=new Uint8Array(bufferLength);
-
-function draw(){
-  requestAnimationFrame(draw);
-  analyser.getByteFrequencyData(dataArray);
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  let barWidth=(canvas.width/bufferLength)*1.5;
-  let x=0;
-
-  for(let i=0;i<bufferLength;i++){
-    let barHeight=dataArray[i]/2;
-    ctx.fillStyle="rgb(0,255,213)";
-    ctx.fillRect(x,canvas.height-barHeight,barWidth,barHeight);
-    x+=barWidth+2;
-  }
-}
-draw();
 
 /* ===== START ===== */
 loadSong(0);
