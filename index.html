@@ -9,50 +9,90 @@ body{
   margin:0;
   font-family:Arial;
   background:url("background.jpg") no-repeat center/cover;
-  backdrop-filter:blur(5px);
   color:white;
   text-align:center;
 }
 
-.container{
-  margin:50px auto;
-  width:400px;
-  background:rgba(0,0,0,0.6);
-  padding:20px;
-  border-radius:20px;
+/* blur overlay */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  backdrop-filter:blur(8px);
+  background:rgba(0,0,0,0.3);
+  z-index:-1;
 }
 
-h2{margin-bottom:10px}
+.container{
+  margin:40px auto;
+  width:420px;
+  background:rgba(0,0,0,0.65);
+  padding:20px;
+  border-radius:22px;
+  box-shadow:0 0 30px rgba(0,0,0,0.5);
+}
+
+/* ===== DISC ===== */
+
+.disc{
+  width:180px;
+  height:180px;
+  margin:10px auto 20px;
+  border-radius:50%;
+  background:url("disc.jpg") center/cover;
+  animation:spin 5s linear infinite;
+  animation-play-state:paused;
+  box-shadow:0 0 25px rgba(0,255,200,0.5);
+}
+
+.disc.playing{
+  animation-play-state:running;
+}
+
+@keyframes spin{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
 
 button{
-  padding:8px 12px;
+  padding:8px 14px;
   margin:4px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   cursor:pointer;
+  font-weight:bold;
+}
+
+button:hover{
+  background:#00ffcc;
+  color:black;
 }
 
 input[type=range]{
   width:100%;
+  margin-top:8px;
 }
 
 .playlist{
   text-align:left;
-  max-height:200px;
+  max-height:220px;
   overflow-y:auto;
-  margin-top:10px;
+  margin-top:12px;
 }
 
 .song-item{
-  padding:5px;
+  padding:6px;
   cursor:pointer;
+  border-radius:6px;
 }
 
 .song-item:hover{
   background:rgba(255,255,255,0.2);
 }
+
 .active{
   color:#00ffcc;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -60,7 +100,10 @@ input[type=range]{
 <body>
 
 <div class="container">
-  <h2 id="songTitle">Đang tải...</h2>
+
+  <div class="disc" id="disc"></div>
+
+  <h3 id="songTitle">Đang tải...</h3>
 
   <audio id="player"></audio>
 
@@ -76,6 +119,7 @@ input[type=range]{
   <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
 
   <div class="playlist" id="playlistUI"></div>
+
 </div>
 
 <script>
@@ -87,33 +131,42 @@ const title = document.getElementById("songTitle");
 const playlistUI = document.getElementById("playlistUI");
 const progress = document.getElementById("progress");
 const volume = document.getElementById("volume");
+const disc = document.getElementById("disc");
 
 let playlist = [];
 let index = 0;
 let isShuffle = false;
 let isRepeat = false;
 
+/* ===== LOAD SONGS FROM GITHUB ===== */
 async function loadSongs(){
-  const res = await fetch(
-    `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`
-  );
-  const data = await res.json();
+  try{
+    const res = await fetch(
+      `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`
+    );
+    const data = await res.json();
 
-  playlist = data
-    .filter(f => f.name.endsWith(".mp3"))
-    .map(f => ({
-      name: f.name,
-      url: f.download_url
-    }));
+    playlist = data
+      .filter(f => f.name.toLowerCase().endsWith(".mp3"))
+      .map(f => ({
+        name: f.name,
+        url: f.download_url
+      }));
 
-  renderPlaylist();
-  if(playlist.length>0){
-    loadSong(0);
-  } else {
-    title.innerText = "❌ Không có mp3";
+    renderPlaylist();
+
+    if(playlist.length>0){
+      loadSong(0);
+    } else {
+      title.innerText="❌ Không tìm thấy mp3";
+    }
+  }catch(err){
+    title.innerText="❌ Lỗi tải nhạc";
+    console.error(err);
   }
 }
 
+/* ===== RENDER LIST ===== */
 function renderPlaylist(){
   playlistUI.innerHTML="";
   playlist.forEach((song,i)=>{
@@ -125,69 +178,96 @@ function renderPlaylist(){
   });
 }
 
+/* ===== LOAD SONG ===== */
 function loadSong(i){
   index=i;
   player.src=playlist[index].url;
   title.innerText="🎵 "+playlist[index].name;
   highlight();
-  player.play();
+  player.play().catch(()=>{});
 }
 
+/* ===== HIGHLIGHT ===== */
 function highlight(){
   document.querySelectorAll(".song-item").forEach((el,i)=>{
     el.classList.toggle("active",i===index);
   });
 }
 
+/* ===== PLAY / PAUSE ===== */
 function togglePlay(){
-  if(player.paused) player.play();
-  else player.pause();
+  if(player.paused){
+    player.play();
+  }else{
+    player.pause();
+  }
 }
 
+/* ===== NEXT ===== */
 function next(){
+  if(playlist.length===0) return;
+
   if(isShuffle){
     index=Math.floor(Math.random()*playlist.length);
-  } else {
+  }else{
     index=(index+1)%playlist.length;
   }
   loadSong(index);
 }
 
+/* ===== PREV ===== */
 function prev(){
+  if(playlist.length===0) return;
   index=(index-1+playlist.length)%playlist.length;
   loadSong(index);
 }
 
+/* ===== SHUFFLE ===== */
 function shuffleToggle(){
   isShuffle=!isShuffle;
   alert("Shuffle: "+isShuffle);
 }
 
+/* ===== REPEAT ===== */
 function repeatToggle(){
   isRepeat=!isRepeat;
   alert("Repeat: "+isRepeat);
 }
 
+/* ===== AUTO NEXT ===== */
 player.addEventListener("ended",()=>{
   if(isRepeat){
     loadSong(index);
-  } else {
+  }else{
     next();
   }
 });
 
+/* ===== PROGRESS ===== */
 player.addEventListener("timeupdate",()=>{
   progress.value=(player.currentTime/player.duration)*100 || 0;
 });
 
+/* seek */
 progress.addEventListener("input",()=>{
   player.currentTime=(progress.value/100)*player.duration;
 });
 
+/* volume */
 volume.addEventListener("input",()=>{
   player.volume=volume.value;
 });
 
+/* ===== DISC SPIN CONTROL ===== */
+player.addEventListener("play",()=>{
+  disc.classList.add("playing");
+});
+
+player.addEventListener("pause",()=>{
+  disc.classList.remove("playing");
+});
+
+/* ===== START ===== */
 loadSongs();
 </script>
 
