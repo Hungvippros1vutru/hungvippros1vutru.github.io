@@ -2,111 +2,193 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>🎧 Web nghe nhạc</title>
+<title>🎧 Hung Music Player</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
   background:url("background.jpg") no-repeat center/cover;
+  backdrop-filter:blur(5px);
   color:white;
   text-align:center;
 }
 
-.player-box{
-  margin-top:100px;
-  background:rgba(0,0,0,0.5);
-  display:inline-block;
-  padding:25px;
+.container{
+  margin:50px auto;
+  width:400px;
+  background:rgba(0,0,0,0.6);
+  padding:20px;
   border-radius:20px;
 }
+
+h2{margin-bottom:10px}
+
 button{
-  padding:8px 14px;
-  margin:5px;
+  padding:8px 12px;
+  margin:4px;
   border:none;
   border-radius:8px;
   cursor:pointer;
+}
+
+input[type=range]{
+  width:100%;
+}
+
+.playlist{
+  text-align:left;
+  max-height:200px;
+  overflow-y:auto;
+  margin-top:10px;
+}
+
+.song-item{
+  padding:5px;
+  cursor:pointer;
+}
+
+.song-item:hover{
+  background:rgba(255,255,255,0.2);
+}
+.active{
+  color:#00ffcc;
 }
 </style>
 </head>
 
 <body>
 
-<div class="player-box">
-  <h2 id="songName">Đang tải nhạc...</h2>
+<div class="container">
+  <h2 id="songTitle">Đang tải...</h2>
 
-  <audio id="player"></audio><br>
+  <audio id="player"></audio>
 
-  <button onclick="prevSong()">⏮</button>
-  <button onclick="player.play()">▶</button>
-  <button onclick="player.pause()">⏸</button>
-  <button onclick="nextSong()">⏭</button>
+  <div>
+    <button onclick="prev()">⏮</button>
+    <button onclick="togglePlay()">▶ / ⏸</button>
+    <button onclick="next()">⏭</button>
+    <button onclick="shuffleToggle()">🔀</button>
+    <button onclick="repeatToggle()">🔁</button>
+  </div>
+
+  <input type="range" id="progress" value="0">
+  <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+
+  <div class="playlist" id="playlistUI"></div>
 </div>
 
 <script>
-// ====== CONFIG ======
-const USERNAME = "hungvippros1vutru"; // ← sửa nếu cần
-const REPO = "hungvippros1vutru.github.io"; // ← sửa nếu cần
+const USERNAME = "hungvippros1vutru";
+const REPO = "hungvippros1vutru.github.io";
 
-// ====== BIẾN ======
 const player = document.getElementById("player");
-const songName = document.getElementById("songName");
+const title = document.getElementById("songTitle");
+const playlistUI = document.getElementById("playlistUI");
+const progress = document.getElementById("progress");
+const volume = document.getElementById("volume");
 
 let playlist = [];
 let index = 0;
+let isShuffle = false;
+let isRepeat = false;
 
-// ====== LOAD MP3 TỪ GITHUB ======
-async function loadFromGitHub(){
-  try{
-    const res = await fetch(
-      `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`
-    );
-    const data = await res.json();
+async function loadSongs(){
+  const res = await fetch(
+    `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`
+  );
+  const data = await res.json();
 
-    playlist = data
-      .filter(f => f.name.endsWith(".mp3"))
-      .map(f => f.download_url);
+  playlist = data
+    .filter(f => f.name.endsWith(".mp3"))
+    .map(f => ({
+      name: f.name,
+      url: f.download_url
+    }));
 
-    if(playlist.length === 0){
-      songName.innerText = "❌ Không tìm thấy mp3";
-      return;
-    }
-
+  renderPlaylist();
+  if(playlist.length>0){
     loadSong(0);
-
-  }catch(err){
-    songName.innerText = "❌ Lỗi load nhạc";
-    console.error(err);
+  } else {
+    title.innerText = "❌ Không có mp3";
   }
 }
 
-// ====== LOAD BÀI ======
+function renderPlaylist(){
+  playlistUI.innerHTML="";
+  playlist.forEach((song,i)=>{
+    const div=document.createElement("div");
+    div.className="song-item";
+    div.innerText=song.name;
+    div.onclick=()=>loadSong(i);
+    playlistUI.appendChild(div);
+  });
+}
+
 function loadSong(i){
-  index = i;
-  player.src = playlist[index];
-  updateName();
+  index=i;
+  player.src=playlist[index].url;
+  title.innerText="🎵 "+playlist[index].name;
+  highlight();
   player.play();
 }
 
-function updateName(){
-  const name = playlist[index].split("/").pop();
-  songName.innerText = "🎵 " + name;
+function highlight(){
+  document.querySelectorAll(".song-item").forEach((el,i)=>{
+    el.classList.toggle("active",i===index);
+  });
 }
 
-function nextSong(){
-  index = (index + 1) % playlist.length;
+function togglePlay(){
+  if(player.paused) player.play();
+  else player.pause();
+}
+
+function next(){
+  if(isShuffle){
+    index=Math.floor(Math.random()*playlist.length);
+  } else {
+    index=(index+1)%playlist.length;
+  }
   loadSong(index);
 }
 
-function prevSong(){
-  index = (index - 1 + playlist.length) % playlist.length;
+function prev(){
+  index=(index-1+playlist.length)%playlist.length;
   loadSong(index);
 }
 
-player.addEventListener("ended", nextSong);
+function shuffleToggle(){
+  isShuffle=!isShuffle;
+  alert("Shuffle: "+isShuffle);
+}
 
-// ====== CHẠY ======
-loadFromGitHub();
+function repeatToggle(){
+  isRepeat=!isRepeat;
+  alert("Repeat: "+isRepeat);
+}
+
+player.addEventListener("ended",()=>{
+  if(isRepeat){
+    loadSong(index);
+  } else {
+    next();
+  }
+});
+
+player.addEventListener("timeupdate",()=>{
+  progress.value=(player.currentTime/player.duration)*100 || 0;
+});
+
+progress.addEventListener("input",()=>{
+  player.currentTime=(progress.value/100)*player.duration;
+});
+
+volume.addEventListener("input",()=>{
+  player.volume=volume.value;
+});
+
+loadSongs();
 </script>
 
 </body>
