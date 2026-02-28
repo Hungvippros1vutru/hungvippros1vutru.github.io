@@ -2,180 +2,194 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Boss Gaara</title>
+<title>🎧 Hung Music Player</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  color: white;
-  text-align: center;
-  background: linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.6)),
-              url("background.jpg");
-  background-size: cover;
-  height: 100vh;
+body{
+  margin:0;
+  font-family:Arial;
+  background:url("background.jpg") no-repeat center/cover;
+  backdrop-filter:blur(5px);
+  color:white;
+  text-align:center;
 }
 
-.player-box {
-  margin-top: 80px;
+.container{
+  margin:50px auto;
+  width:400px;
+  background:rgba(0,0,0,0.6);
+  padding:20px;
+  border-radius:20px;
 }
 
-button {
-  padding: 8px 14px;
-  margin: 4px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
+h2{margin-bottom:10px}
+
+button{
+  padding:8px 12px;
+  margin:4px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
 }
 
-#songName {
-  font-size: 20px;
-  margin: 15px;
-  font-weight: bold;
+input[type=range]{
+  width:100%;
 }
 
-.progress {
-  width: 60%;
-  height: 6px;
-  background: #555;
-  margin: 10px auto;
-  border-radius: 10px;
-  cursor: pointer;
-  position: relative;
+.playlist{
+  text-align:left;
+  max-height:200px;
+  overflow-y:auto;
+  margin-top:10px;
 }
 
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #1db954;
-  border-radius: 10px;
+.song-item{
+  padding:5px;
+  cursor:pointer;
 }
 
-.volume {
-  width: 200px;
+.song-item:hover{
+  background:rgba(255,255,255,0.2);
+}
+.active{
+  color:#00ffcc;
 }
 </style>
 </head>
 
 <body>
 
-<div class="player-box">
-  <h1>🎧 Gaara Playlist chill 🎧</h1>
-
-  <div id="songName">Đang tải...</div>
+<div class="container">
+  <h2 id="songTitle">Đang tải...</h2>
 
   <audio id="player"></audio>
 
-  <div class="progress" onclick="seek(event)">
-    <div class="progress-bar" id="progressBar"></div>
-  </div>
-
   <div>
-    <button onclick="prevSong()">⏮</button>
-    <button onclick="togglePlay()">▶️ / ⏸</button>
-    <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleShuffle()">🔀</button>
-    <button onclick="toggleRepeat()">🔁</button>
+    <button onclick="prev()">⏮</button>
+    <button onclick="togglePlay()">▶ / ⏸</button>
+    <button onclick="next()">⏭</button>
+    <button onclick="shuffleToggle()">🔀</button>
+    <button onclick="repeatToggle()">🔁</button>
   </div>
 
-  <br>
-  🔊 <input type="range" class="volume" min="0" max="1" step="0.01"
-       onchange="player.volume=this.value" value="1">
+  <input type="range" id="progress" value="0">
+  <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+
+  <div class="playlist" id="playlistUI"></div>
 </div>
 
 <script>
-// ===== TITLE CHẠY =====
-let titleText = "🎧 Nơi chill của Gaara 😎   ";
-setInterval(()=>{
-  document.title = titleText;
-  titleText = titleText.substring(1) + titleText[0];
-},200);
+const USERNAME = "hungvippros1vutru";
+const REPO = "hungvippros1vutru.github.io";
 
-// ===== BIẾN =====
 const player = document.getElementById("player");
-const songName = document.getElementById("songName");
-const progressBar = document.getElementById("progressBar");
+const title = document.getElementById("songTitle");
+const playlistUI = document.getElementById("playlistUI");
+const progress = document.getElementById("progress");
+const volume = document.getElementById("volume");
 
-let playlist = [
- "song1.mp3",
-  "song2.mp3",
-  "song3.mp3",
-  "song4.mp3"
-];
-
+let playlist = [];
 let index = 0;
 let isShuffle = false;
 let isRepeat = false;
 
-// ===== LOAD =====
+async function loadSongs(){
+  const res = await fetch(
+    `https://api.github.com/repos/${USERNAME}/${REPO}/contents/`
+  );
+  const data = await res.json();
+
+  playlist = data
+    .filter(f => f.name.endsWith(".mp3"))
+    .map(f => ({
+      name: f.name,
+      url: f.download_url
+    }));
+
+  renderPlaylist();
+  if(playlist.length>0){
+    loadSong(0);
+  } else {
+    title.innerText = "❌ Không có mp3";
+  }
+}
+
+function renderPlaylist(){
+  playlistUI.innerHTML="";
+  playlist.forEach((song,i)=>{
+    const div=document.createElement("div");
+    div.className="song-item";
+    div.innerText=song.name;
+    div.onclick=()=>loadSong(i);
+    playlistUI.appendChild(div);
+  });
+}
+
 function loadSong(i){
-  index = i;
-  player.src = playlist[index];
+  index=i;
+  player.src=playlist[index].url;
+  title.innerText="🎵 "+playlist[index].name;
+  highlight();
   player.play();
-  updateName();
 }
 
-function updateName(){
-  const name = playlist[index].split("/").pop();
-  songName.innerText = "🎵 " + name;
+function highlight(){
+  document.querySelectorAll(".song-item").forEach((el,i)=>{
+    el.classList.toggle("active",i===index);
+  });
 }
 
-// ===== PLAY/PAUSE =====
 function togglePlay(){
   if(player.paused) player.play();
   else player.pause();
 }
 
-// ===== NEXT/PREV =====
-function nextSong(){
+function next(){
   if(isShuffle){
-    index = Math.floor(Math.random()*playlist.length);
+    index=Math.floor(Math.random()*playlist.length);
   } else {
-    index = (index + 1) % playlist.length;
+    index=(index+1)%playlist.length;
   }
   loadSong(index);
 }
 
-function prevSong(){
-  index = (index - 1 + playlist.length) % playlist.length;
+function prev(){
+  index=(index-1+playlist.length)%playlist.length;
   loadSong(index);
 }
 
-// ===== SHUFFLE =====
-function toggleShuffle(){
-  isShuffle = !isShuffle;
-  alert("Shuffle: " + (isShuffle ? "ON" : "OFF"));
+function shuffleToggle(){
+  isShuffle=!isShuffle;
+  alert("Shuffle: "+isShuffle);
 }
 
-// ===== REPEAT =====
-function toggleRepeat(){
-  isRepeat = !isRepeat;
-  alert("Repeat: " + (isRepeat ? "ON" : "OFF"));
+function repeatToggle(){
+  isRepeat=!isRepeat;
+  alert("Repeat: "+isRepeat);
 }
 
-// ===== AUTO NEXT =====
-player.addEventListener("ended", ()=>{
-  if(isRepeat) loadSong(index);
-  else nextSong();
+player.addEventListener("ended",()=>{
+  if(isRepeat){
+    loadSong(index);
+  } else {
+    next();
+  }
 });
 
-// ===== PROGRESS =====
-player.addEventListener("timeupdate", ()=>{
-  const percent = (player.currentTime / player.duration) * 100;
-  progressBar.style.width = percent + "%";
+player.addEventListener("timeupdate",()=>{
+  progress.value=(player.currentTime/player.duration)*100 || 0;
 });
 
-function seek(e){
-  const rect = e.currentTarget.getBoundingClientRect();
-  const percent = (e.clientX - rect.left) / rect.width;
-  player.currentTime = percent * player.duration;
-}
+progress.addEventListener("input",()=>{
+  player.currentTime=(progress.value/100)*player.duration;
+});
 
-// ===== START =====
-loadSong(0);
+volume.addEventListener("input",()=>{
+  player.volume=volume.value;
+});
+
+loadSongs();
 </script>
 
 </body>
-
 </html>
